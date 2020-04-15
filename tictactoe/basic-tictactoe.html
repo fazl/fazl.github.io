@@ -1,0 +1,191 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Basic Tic Tac Toe</title>
+  <meta name="description" content="Basic Tic Tac Toe">
+  <meta name="author" content="Fazl">
+
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+  <!-- inline styles take precedence over external -->
+  <style type="text/css">
+    button{
+      width: 130px;
+      height: 130px;
+      outline: none;
+      border: none;
+      background-color: #2a609a;
+      color: white;
+      font-size: 16px;
+    }
+    button.active:hover{
+      cursor: pointer;
+      background-color: #32CD32;
+      font-size: 20px;
+      transition: 0.5s;
+    }
+    button.locked{
+      background-color: #32CD32;
+      font-size: 20px;
+    }
+    button.winner{
+      border: 6px solid crimson;
+    }
+    table {
+        margin:0 auto;
+    }
+  </style>
+
+  <script>
+    const o = 'O';
+    const x = 'X';
+    let player=x;
+    let activeButtons = -1;
+    const straightLines = [
+      [0,1,2], [3,4,5],[6,7,8],//horiz
+      [0,3,6], [1,4,7],[2,5,8],//vert
+      [0,4,8], [2,4,6] //diagonals
+    ];
+    let displayPlayer = null;
+
+    // (bitwise-not)x2 truncates float to int see stackoverflow
+    function int(val){ return ~~val; }
+
+    function isPlayerX(){ return player === x; }
+
+    function playerOccupiesLine(clicker,btnLine){
+      return btnLine.every( (b) => b.textContent === clicker );
+    }
+
+    function togglePlayer(){
+      let opponent = player;
+      player = isPlayerX() ? o : x;
+      displayPlayer.innerText = `Player: ${opponent}`;
+    }
+
+    // receives O or X in clicker, must decide if is winner
+    //
+    // sledgehammer: just go thru all straight lines
+    // checking if winner fully populates one of them
+    //
+    function checkGameWon(clicker){
+      const buttons = document.getElementsByTagName('button');
+      for(let c = 0; c<straightLines.length; c++){
+        const L = straightLines[c];
+        const btnLine = [ buttons[L[0]], buttons[L[1]], buttons[L[2]] ];
+
+        if( playerOccupiesLine(clicker,btnLine) ){
+          console.log(`Win: ${player} occupies line ${L}`);
+          btnLine.forEach((btn) => btn.classList.add('winner') );// 'foreach' fails
+          displayPlayer.innerText = `${player} wins`;
+          deactivateBlankButtons();
+
+          return true;
+        }
+      }
+
+      console.log(`No win..`);
+      return false;
+    }
+
+    // closure per button, with own row / col value
+    //
+    // caveat1: getElementsByTagName() before page loads, finds no buttons
+    //
+    function initGame(event){
+      console.log(`initGame(event=${event.type})`); //not event.name doh
+      const buttons = document.getElementsByTagName('button');
+      const SIDE = Math.sqrt(buttons.length);
+      for (var i=0 ; i < buttons.length ; i++){
+        (function(btn,row,col){
+
+          btn.row = row;
+          btn.col = col;
+          btn.value = `row=${row}, col=${col}`;
+          btn.classList.add('active');
+
+          // onclick handles game logic
+          //
+          btn.onclick=function(){
+            togglePlayer();
+            // In firefox open console with CTRL+SHIFT+K
+            console.log(`Player ${player} clicked: ${btn.value}`);
+            btn.textContent = isPlayerX() ? x : o;
+            // Lock button down after it is taken
+            lockButton(btn);
+
+            if( !checkGameWon(player) && 0 == --activeButtons ){
+              console.log(`Game over - draw`);
+              displayPlayer.innerText = `* Draw *`;
+            }
+          };
+
+        })(buttons[i], int(1+i/SIDE), int(1+i%SIDE));
+
+        activeButtons = buttons.length;
+        displayPlayer = document.getElementById('player');
+      }
+    }
+
+    function deactivateBlankButtons(){
+      [].slice.call( // HTMLCollection -> array
+        document.getElementsByTagName('button')
+      ).forEach( (btn) => {
+        if(btn.textContent == ''){
+          btn.onclick=null;
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function lockButton(btn){
+      btn.onclick=null;
+      btn.classList.remove('active');
+      btn.classList.add('locked');
+    }
+
+    // see caveat1 above; 'load' would delay till images loaded
+    addEventListener("DOMContentLoaded", initGame);
+  </script>
+
+</head>
+
+<body>
+  <!--
+  <script src="js/scripts.js"></script>
+  <p>Example of basic html page</p>
+  <p style="color: red">The <code>style</code> attribute can override both inline and external styles, though.</p>
+  -->
+
+  <table>
+    <thead>
+      <tr>
+        <!-- colspan essential else column of whitespace inserts -->
+        <th colspan="3"> <h1>Tic Tac Toe</h1> </th>
+      </tr>
+      <tr>
+        <th colspan="3">Simply HTML + CSS + Javascript</th>
+      </tr>
+      <tr>
+        <th colspan="1"></th>
+        <th ID="player" colspan="1">Player: O</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><button/></td> <td><button/></td> <td><button/></td>
+      </tr>
+      <tr>
+        <td><button/></td> <td><button/></td> <td><button/></td>
+      </tr>
+      <tr>
+        <td><button/></td> <td><button/></td> <td><button/></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
