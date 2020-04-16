@@ -32,12 +32,15 @@
       font-size: 20px;
     }
     button.winner{
-      border: 6px solid crimson;
+      /* TODO how to make darkred a reusable constant ? */
+      background-color: darkred;
+      transition: 0.5s;
     }
     table {
         margin:0 auto;
     }
     blink {
+        color: darkred;
         animation: blink 1s steps(1) infinite;
         -webkit-animation: blink 1s steps(1) infinite;
     }
@@ -133,7 +136,7 @@
     //
     function genGameTable(event){
       //first get the size
-      const size = document.getElementById("id-game-size").value;
+      const size = document.getElementById("id-size").value;
       console.log(`genGameTable() new size: ${size}`);
       const body = document.getElementById("game-table-body");
       const rows = body.children;
@@ -309,9 +312,12 @@
         <th colspan="3"> <h1>Resizable Tic Tac Toe</h1> </th>
       </tr>
       <tr>
-        <th colspan="1" align="right"><label for="id-game-size">Size (2-32):</label></th>
-        <th colspan="1"><input id="id-game-size" min="2" value="3" type="number" onclick="genGameTable(event)"></th>
-        <!-- NB Need 'event' in genGameTable call (else exception if called fn accesses event!) -->
+        <th colspan="1" align="left">
+          <input id="id-size" min="2" value="3" type="number" onclick="genGameTable(event)" />
+        </th>
+        <th colspan="2" align="right">
+          (Enter 1-9, re-click to update)
+        </th>
       </tr>
     </thead>
   </table>
