@@ -1,11 +1,104 @@
-To get my teeth into HTML/CSS/JavaScript (I'm a serverside guy normally..) I thought I'd see if it was easy to build a tictactoe game in a single HTML file.
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Fazl's github.io Website</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans+Condensed:300|Sonsie+One" type="text/css">
+    <link rel="stylesheet" href="style.css">
+    <!-- fix HTML5 semantic elements (??WHICH??) in old versions of Internet Explorer-->
+    <!--[if lt IE 9]>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.js"></script>
+    <![endif]-->
+  </head>
 
-So here are: 
+  <body>
+    <!-- Common header,  used across all pages of website -->
+    <header> <h1>fazl.github.io</h1> </header>
+    <nav>
+      <!-- Search form = commmon (& non-linear) way to navigate a website. -->
+      <form>
+        <input type="search" name="q" placeholder="This search is a WIP">
+        <input type="submit" value="Go!">
+      </form>
+      <ul>
+        <li><a href="#">Please</a></li>     <!-- Note they all point nowhere!? -->
+        <li><a href="#">Ignore</a></li>
+        <li><a href="#">These</a></li>
+        <li><a href="#">Links</a></li>
+      </ul>
+    </nav>
 
-<ul>
-  <li> the <a href="tictactoe/basic-tictactoe.html">basic 3 x 3 Tic Tac Toe</a>, and </li>
-  <li> the <a href="tictactoe/resizable-tictactoe.html">resizable n x n Tic Tac Toe</a>, and </li>
-</ul>
+    <!-- Page's main content -->
+    <main>
+      <!-- It contains an article -->
+      <hr/>
+      <article>
+        <h2>GitHub Showcase</h2>
 
-Enjoy!
+        <p>You can show off some aspects of your GitHub repos or projects via github.io.</p>
 
+        <hr/>
+        <h3>Adventures in CSS/HTML/JavaScript</h3>
+
+        <p>I'm a serverside guy normally.</p>
+        <p>To get my teeth into HTML/CSS/JavaScript (..) I thought I'd build a tictactoe game <em>in a single HTML file</em>.</p>
+        <p>Here it is with variants, all of which are just a single static HTML file. No fancy Node.JS server or massive 25MB of angular libs needed!</p>
+        <p>They are actually about 6KB in size..</p>
+
+        <ul>
+          <li> the <a href="tictactoe/basic-tictactoe.html">basic 3 x 3 Tic Tac Toe</a>, and </li>
+          <li> the <a href="tictactoe/resizable-tictactoe.html">resizable n x n Tic Tac Toe</a>, and </li>
+          <li> the <a href="tictactoe/tilepuzzle.html">Sliding Tile Puzzle</a> </li>
+        </ul>
+
+        Enjoy!
+
+        <hr/>
+        <h3>Another subsection</h3>
+        <p>The ducks in Germany really have got their act together.
+        They know to wait at a pedestrian crossing till the green man appears.</p>
+        <p>Those German ducks could teach the Inselaffen a thing or two..</p>
+
+      </article>
+      <article>
+        <p>Here is a horizontal rule:</p>
+        <hr/>
+        <h2>Using &lt;<code>br</code>&gt; line breaks</h2>
+        <p>The ducks in Germany really have <br/>
+        got their shit together.<br/>
+        They know to wait at a pedestrian crossing <br/>
+        till the green man appears.</p>
+        <hr/>
+        <h2>Using &lt;<code>pre</code>&gt; instead</h2>
+        (Much cleaner markup without &lt;<code>br</code>&gt; sprinkled on the lines..)
+        <pre>
+        The ducks in Germany really have
+        got their shit together.
+        They know to wait at a pedestrian crossing
+        till the green man appears.
+        </pre>
+      </article>
+
+
+      <!-- the aside content can also be nested within the main content -->
+      <aside>
+        <h2>Related</h2>
+
+        <ul>
+          <li><a href="#">Oh I do like to be beside the seaside</a></li>
+          <li><a href="#">Oh I do like to be beside the sea</a></li>
+          <li><a href="#">Although in the North of England</a></li>
+          <li><a href="#">It never stops raining</a></li>
+          <li><a href="#">Oh well...</a></li>
+        </ul>
+      </aside>
+
+    </main>
+
+    <!-- Common footer used across website -->
+    <footer>
+      <p>©Copyright 2050 by nobody. All rights reversed.</p>
+    </footer>
+
+  </body>
+</html>
