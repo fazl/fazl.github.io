@@ -1,0 +1,339 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Resizable Tile Puzzle</title>
+  <meta name="description" content="Resizable Tile Puzzle">
+  <meta name="author" content="Fazl">
+
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+  <!-- inline styles take precedence over external -->
+  <style type="text/css">
+    button{
+      width: 130px;
+      height: 130px;
+      outline: none;
+      border: none;
+      background-color: lightblue;
+      color: black;
+      font-size: 30px;
+    }
+    button.hole{
+      background-color: black;
+      font-size: 20px;
+    }
+    button.active:hover{
+      cursor: pointer;
+      background-color: green;
+      font-size: 50px;
+      transition: 0.5s;
+    }
+    button.locked{
+      background-color: green;
+      font-size: 20px;
+    }
+    button.winner{
+      /* TODO ??how to make darkred a reusable constant?? */
+      background-color: darkred;
+      transition: 0.5s;
+    }
+    table {
+        margin:0 auto;
+    }
+    blink {
+        color: darkred;
+        animation: blink 1s steps(1) infinite;
+        -webkit-animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink { 50% { color: transparent; } }
+    @-webkit-keyframes blink { 50% { color: transparent; }
+    }
+  </style>
+
+  <script>
+    let gameStatus = null;
+    let nMoves = 0;
+
+    // global error handler
+    // see https://stackoverflow.com/a/10556743/7409029
+    // Could report error via ajax to track pages with issues!
+    window.onerror = function(msg, url, line, col, error) {
+       // Note col & error new to HTML 5
+       var extra = !col ? '' : '\ncolumn: ' + col;
+       extra += !error ? '' : '\nerror: ' + error;
+
+       alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
+
+       var suppressErrorAlert = false;
+       // If you return true, then error alerts (like in older versions of
+       // Internet Explorer) will be suppressed.
+       return suppressErrorAlert;
+    };
+
+    // (bitwise-not)x2 truncates float to int see stackoverflow
+    function int(val){ return ~~val; }
+
+    function checkGameWon(){
+      const buttons = document.getElementsByTagName('button');
+      for(let i = 0; i<buttons.length; i++){
+
+        if( +i != +(buttons[i].textContent)){
+          // found a button in wrong position
+          return false;
+        }
+      }
+
+      console.log(`All tiles in place - Game over - phew!`);
+      deactivateButtons();
+      setGameOverStatus(gameStatus);
+    }
+
+    function setGameOverStatus(cont){
+      const bink = document.createElement('blink');
+      bink.innerText = `Won in ${nMoves} moves!`;
+      cont.innerText = ``;
+      cont.append(bink);
+    }
+
+    // Want to waste 15mins scratching your head? Just
+    // omit the brackets in the HTML element registering
+    // the click handler thus: onclick="genGameTable"
+    // It's a lot of fun...
+    //
+    function genGameTable(event){
+      const size = document.getElementById("id-size").value;
+      console.log(`genGameTable() new size: ${size}`);
+      const body = document.getElementById("game-table-body");
+      const rows = body.children;
+      /*
+      //Useful scaffolding
+      for(let r = 0; r<rows.length; ++r){
+        let row=rows[r];
+        console.log(`row ${r} : ${row}`);
+        let tds=row.children;
+        for(let d = 0; d<tds.length; ++d){
+          let td=tds[d];
+          //td.firstChild is contained button
+          console.log(`\telem ${d} : ${td} value: ${td.firstChild.value}`);
+        }
+      }
+      */
+
+      // clear existing table body
+      for(let r=rows.length; r>0; --r){
+        console.debug(`Remove row ${r} from body`);
+        body.removeChild(rows[r-1]);
+      }
+
+      // repopulate with size x size grid
+      for(let r = 0; r<size; ++r){
+        let row=document.createElement("tr");;
+        console.log(`New row ${r} : ${row}`);
+        for(let d = 0; d<size; ++d){
+          let td=document.createElement("td");
+          let btn=document.createElement("button");
+          btn.value=`row=${r+1}, col=${d+1}`;
+          td.append(btn);
+          console.log(`\telem ${d} : ${td} value: ${td.firstChild.value}`);
+          row.append(td);
+        }
+
+        body.append(row);
+      }
+
+      initGame(event);
+    }
+
+    // index of cell in grid
+    function xysize2index(x,y,size){
+      if( 0<size &&
+          (0<=x && x<size) &&
+          (0<=y && y<size) ){
+
+          return (y*size)+x;
+      }
+      throw `Bad x,y,size combo ${x},${y},${size}`;
+    }
+
+    // To understand the code, review the html structure first
+    // Then follow initGame() esp the code setting onclick.
+    // closure per button, with own row / col value
+    //
+    // caveat1: getElementsByTagName() before page loads, finds no buttons
+    //
+    function initGame(event){
+      console.log(`initGame(event=${event.type})`);
+      const buttons = document.getElementsByTagName('button');
+      const SIDE = Math.sqrt(buttons.length);
+      for (var i=0 ; i < buttons.length ; i++){
+        (function(i,btn,row,col){
+
+          btn.row = row;
+          btn.col = col;
+          btn.idx = i;
+          btn.value = `row=${row}, col=${col}`;
+          btn.classList.add((0<i) ? 'active' : 'hole');
+          btn.textContent = i;
+
+          // onclick handles game logic
+          //
+          btn.onclick=function(){
+
+            gameStatus.innerText = `Moves: ${++nMoves}`;
+
+            // TODO move button into hole if neighb
+            let holeIndex = findHoleIndex(buttons);
+            let canMove = isNeighbour(btn.idx, holeIndex, SIDE);
+            console.debug(`Tile ${btn.idx} ${canMove?'IS':'NOT'} next to hole`);
+            if( canMove ){
+              swapTileProperties(btn,buttons[holeIndex]);
+            }
+
+            // In firefox console opens with CTRL+SHIFT+K
+            console.log(`Player clicked tile ${btn.idx} at ${btn.value}`);
+
+            // TilePuzzle only has win or not win
+            checkGameWon();
+          };
+
+        })(i, buttons[i], int(1+i/SIDE), int(1+i%SIDE));
+
+        gameStatus = document.getElementById('gameStatus');
+        nMoves=0;
+      }
+    }
+
+    // Walk buttons, return index of button with hole class
+    function findHoleIndex(arrBtns){
+      let i;
+      for( i = 0; i<arrBtns.length; ++i){
+        if( arrBtns[i].classList.contains('hole') ){
+          console.debug(`Hole position: index ${i}`);
+          return i;
+        }
+      }
+
+      throw `Logic error.. 0/${i} button/tiles has 'hole' class `;
+    }
+
+    // return true if cells at supplied indices adjacent
+    // horiz adjacent: same row, cols differ by 1
+    // vert adjacent: same col, rows differ by 1
+    // so need row/col methods..
+    function isNeighbour(btnIdx, holeIdx, SIDE){
+      btnRow = index2Row(btnIdx, SIDE);
+      btnCol = index2Col(btnIdx, SIDE);
+      holeRow = index2Row(holeIdx, SIDE);
+      holeCol = index2Col(holeIdx, SIDE);
+      console.debug( `btn ${btnIdx} at (${btnCol},${btnRow}), hole at (${holeCol},${holeRow})` );
+
+      if( btnRow === holeRow ){
+        if( Math.abs(btnCol-holeCol) == 1 ){
+          return true;
+        }
+      } else if ( btnCol === holeCol ){
+        if( Math.abs(btnRow-holeRow) == 1){
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    //SIDE count of rows or cols
+    function index2Row( idx, SIDE ){
+      return int(idx/SIDE);
+    }
+
+    //SIDE count of rows or cols
+    function index2Col( idx, SIDE ){
+      return idx%SIDE;
+    }
+
+    // Rather not walk table body, do td.append(btn) at destinations..
+    //
+    // Simpler to morph btn into a hole, and vice versa??
+    function swapTileProperties(btn,hole){
+        hole.classList.remove('hole');
+        hole.classList.add('active');
+        btn.classList.remove('active');
+        btn.classList.add('hole');
+
+        let tmp = ""+btn.value;
+        btn.value=hole.value;
+        hole.value=tmp;
+
+        tmp = btn.textContent;
+        btn.textContent = hole.textContent;
+        hole.textContent = tmp;
+    }
+    function deactivateButtons(){
+      [].slice.call( // HTMLCollection -> array
+        document.getElementsByTagName('button')
+      ).forEach( (btn) => {
+        btn.onclick=null;
+        btn.classList.remove('active');
+      });
+    }
+
+/*
+    function lockButton(btn){
+      btn.onclick=null;
+      btn.classList.remove('active');
+      btn.classList.add('locked');
+    }
+*/
+    // see caveat1 above; 'load' would delay till images loaded
+    addEventListener("DOMContentLoaded", initGame);
+  </script>
+
+</head>
+
+<body>
+  <!--
+  <script src="js/scripts.js"></script>
+  <p>Example of basic html page</p>
+  <p style="color: red">The <code>style</code> attribute can override both inline and external styles, though.</p>
+  -->
+
+  <table>
+    <thead>
+      <tr>
+        <th colspan="3"> <h1>Resizable Tic Tac Toe</h1> </th>
+      </tr>
+      <tr>
+        <th colspan="1" align="left">
+          <input id="id-size" min="2" value="3" type="number" onclick="genGameTable(event)" />
+        </th>
+        <th colspan="2" align="right">
+          (Enter 1-9, re-click to update)
+        </th>
+      </tr>
+    </thead>
+  </table>
+
+  <table id="game-table">
+    <thead>
+      <tr>
+        <th ID="gameStatus" colspan="1" align="left">Moves: 0</th>
+      </tr>
+    </thead>
+    <tbody id="game-table-body">
+      <!-- tbody rebuilt at runtime -->
+      <tr>
+        <td><button/></td> <td><button/></td> <td><button/></td>
+      </tr>
+      <tr>
+        <td><button/></td> <td><button/></td> <td><button/></td>
+      </tr>
+      <tr>
+        <td><button/></td> <td><button/></td> <td><button/></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
