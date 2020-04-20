@@ -107,6 +107,9 @@
     //
     function genGameTable(event){
       const size = document.getElementById("id-size").value;
+      if(size<3){
+        return;
+      }
       console.log(`genGameTable() new size: ${size}`);
       const body = document.getElementById("game-table-body");
       const rows = body.children;
