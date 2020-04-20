@@ -55,7 +55,9 @@
 
   <script>
     let gameStatus = null;
+    let gameStatus2 = null;
     let nMoves = 0;
+    let gameIsAfoot = false;
 
     // global error handler
     // see https://stackoverflow.com/a/10556743/7409029
@@ -168,15 +170,16 @@
       console.log(`initGame(event=${event.type})`);
       const buttons = document.getElementsByTagName('button');
       const SIDE = Math.sqrt(buttons.length);
-      for (var i=0 ; i < buttons.length ; i++){
-        (function(i,btn,row,col){
+      gameIsAfoot = false;
+      for (let i=0 ; i < buttons.length ; i++){
+        (function(idx,btn,row,col){
 
-          btn.row = row;
+          btn.row = row; // TODO remove un-needed properties
           btn.col = col;
-          btn.idx = i;
+          btn.idx = idx;
           btn.value = `row=${row}, col=${col}`;
-          btn.classList.add((0<i) ? 'active' : 'hole');
-          btn.textContent = i;
+          btn.classList.add((0<idx) ? 'active' : 'hole');
+          btn.textContent = idx;
 
           // onclick handles game logic
           //
@@ -196,14 +199,24 @@
             console.log(`Player clicked tile ${btn.idx} at ${btn.value}`);
 
             // TilePuzzle only has win or not win
-            checkGameWon();
+            // Prevent randomisation sweep from winning game accidentally
+            if(gameIsAfoot){
+              checkGameWon();
+            }
           };
 
         })(i, buttons[i], int(1+i/SIDE), int(1+i%SIDE));
 
-        gameStatus = document.getElementById('gameStatus');
-        nMoves=0;
-      }
+      }//for i
+      gameStatus = document.getElementById('gameStatus');
+      gameStatus2 = document.getElementById('gameStatus2');
+
+      randomiseGame();
+      gameStatus2.innerText = `Solvable in: ${nMoves} moves`;
+      gameIsAfoot = true;
+      nMoves=0;
+      gameStatus.innerText = `Moves: 0`;
+
     }
 
     // Walk buttons, return index of button with hole class
@@ -279,13 +292,42 @@
       });
     }
 
-/*
-    function lockButton(btn){
-      btn.onclick=null;
-      btn.classList.remove('active');
-      btn.classList.add('locked');
+    // Find hole; choose click a neighbour at random; repeat
+    function randomiseGame(){
+      const buttons = document.getElementsByTagName('button');
+      const SIDE = int(Math.sqrt(buttons.length));
+      for(let i = 1; i<20; ++i){
+        let holeIndex = findHoleIndex(buttons);
+        let neighbIndex = getRandomNeighbour(holeIndex,SIDE);
+        if(neighbIndex != holeIndex){
+          (buttons[neighbIndex]).onclick();
+        }
+      }
     }
-*/
+
+    function getRandomNeighbour(index,SIDE){
+      const row = index2Row(index,SIDE);
+      const col = index2Col(index,SIDE);
+      const neighbRow = getRandomAdjacent(row,SIDE);
+      const neighbCol = getRandomAdjacent(col,SIDE);
+      return neighbCol + SIDE*neighbRow;
+    }
+
+    function getRandomAdjacent(pos,SIDE){
+      delta = randomInclusive(-1,1);
+      console.debug(`randomInclusive(-1,1): ${delta}`);
+      let adjPos = pos + delta;
+      if(adjPos<0 || SIDE<=adjPos){
+        adjPos = pos - delta;
+      }
+      return adjPos;
+    }
+
+    //Adapted from https://stackoverflow.com/a/7228322/7409029
+    function randomInclusive(min, max) { // min and max included
+      return int(Math.random() * (max - min + 1) + min);
+    }
+
     // see caveat1 above; 'load' would delay till images loaded
     addEventListener("DOMContentLoaded", initGame);
   </script>
@@ -319,6 +361,7 @@
     <thead>
       <tr>
         <th ID="gameStatus" colspan="1" align="left">Moves: 0</th>
+        <th ID="gameStatus2" colspan="2" align="right">Solvable in: ?</th>
       </tr>
     </thead>
     <tbody id="game-table-body">
