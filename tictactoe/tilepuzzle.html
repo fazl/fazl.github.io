@@ -82,7 +82,7 @@
       const buttons = document.getElementsByTagName('button');
       for(let i = 0; i<buttons.length; i++){
 
-        if( +i != +(buttons[i].textContent)){
+        if( 1+i != +(buttons[i].textContent)){
           // found a button in wrong position
           return false;
         }
@@ -175,14 +175,14 @@
       const SIDE = Math.sqrt(buttons.length);
       gameIsAfoot = false;
       for (let i=0 ; i < buttons.length ; i++){
-        (function(idx,btn,row,col){
+        (function(label,btn,row,col){
 
           btn.row = row; // TODO remove un-needed properties
           btn.col = col;
-          btn.idx = idx;
+          btn.idx = label - 1;
           btn.value = `row=${row}, col=${col}`;
-          btn.classList.add((0<idx) ? 'active' : 'hole');
-          btn.textContent = idx;
+          btn.classList.add(label<buttons.length ? 'active' : 'hole');
+          btn.textContent = label;
 
           // onclick handles game logic
           //
@@ -193,13 +193,13 @@
             // TODO move button into hole if neighb
             let holeIndex = findHoleIndex(buttons);
             let canMove = isNeighbour(btn.idx, holeIndex, SIDE);
-            console.debug(`Tile ${btn.idx} ${canMove?'IS':'NOT'} next to hole`);
+            console.debug(`Tile at ${btn.idx} ${canMove?'IS':'NOT'} next to hole`);
             if( canMove ){
               swapTileProperties(btn,buttons[holeIndex]);
             }
 
             // In firefox console opens with CTRL+SHIFT+K
-            console.log(`Player clicked tile ${btn.idx} at ${btn.value}`);
+            console.log(`Player clicked tile at ${btn.idx} coords ${btn.value}`);
 
             // TilePuzzle only has win or not win
             // Prevent randomisation sweep from winning game accidentally
@@ -208,7 +208,7 @@
             }
           };
 
-        })(i, buttons[i], int(1+i/SIDE), int(1+i%SIDE));
+        })(i+1, buttons[i], int(1+i/SIDE), int(1+i%SIDE));
 
       }//for i
       gameStatus = document.getElementById('gameStatus');
@@ -350,10 +350,10 @@
         <th colspan="3"> <h1>Resizable Tile Puzzle</h1> </th>
       </tr>
       <tr>
-        <th colspan="1" align="left">
-          <input id="id-size" min="2" value="3" type="number" onclick="genGameTable(event)" />
+        <th colspan="3" align="left">
+          <input id="id-size" min="2" max="9" value="3" type="number" onclick="genGameTable(event)" />
+          (Enter size 3-9, click to update)
         </th>
-        <th colspan="2" align="right">
           (Enter size 3-9, click to update)
         </th>
       </tr>
