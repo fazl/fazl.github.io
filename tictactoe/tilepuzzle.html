@@ -293,7 +293,7 @@
     function randomiseGame(){
       const buttons = document.getElementsByTagName('button');
       const SIDE = int(Math.sqrt(buttons.length));
-      for(let i = 1; i<20; ++i){
+      for(let i = 1; i<42; ++i){
         let holeIndex = findHoleIndex(buttons);
         let neighbIndex = getRandomNeighbour(holeIndex,SIDE);
         if(neighbIndex != holeIndex){
