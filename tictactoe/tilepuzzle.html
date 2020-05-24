@@ -57,7 +57,7 @@
     let gameStatus = null;
     let gameStatus2 = null;
     let nMoves = 0;
-    let gameIsAfoot = false;
+    let shuffleMode = true;
 
     // global error handler
     // see https://stackoverflow.com/a/10556743/7409029
@@ -101,14 +101,16 @@
     }
 
     // Want to waste 15mins scratching your head? Just
-    // omit the brackets in the HTML element registering
+    // omit the () brackets in the HTML element registering
     // the click handler thus: onclick="genGameTable"
     // It's a lot of fun...
     //
     function genGameTable(event){
-      const size = document.getElementById("id-size").value;
+      let size = document.getElementById("id-size").value;
       if(size<3){
-        return;
+        size = 3;
+      }else if(9<size){
+        size = 9;
       }
       console.log(`genGameTable() new size: ${size}`);
       const body = document.getElementById("game-table-body");
@@ -133,14 +135,14 @@
         body.removeChild(rows[r-1]);
       }
 
-      // repopulate with size x size grid
+      // repopulate with `size x size` grid
       for(let r = 0; r<size; ++r){
         let row=document.createElement("tr");;
         console.log(`New row ${r} : ${row}`);
         for(let d = 0; d<size; ++d){
           let td=document.createElement("td");
           let btn=document.createElement("button");
-          btn.value=`row=${r+1}, col=${d+1}`;
+          btn.value=`col=${d},row=${r}`;
           td.append(btn);
           console.log(`\telem ${d} : ${td} value: ${td.firstChild.value}`);
           row.append(td);
@@ -165,7 +167,7 @@
 
     // To understand the code, review the html structure first
     // Then follow initGame() esp the code setting onclick.
-    // closure per button, with own row / col value
+    // closure per button (with own row / col value)
     //
     // caveat1: getElementsByTagName() before page loads, finds no buttons
     //
@@ -173,53 +175,46 @@
       console.log(`initGame(event=${event.type})`);
       const buttons = document.getElementsByTagName('button');
       const SIDE = Math.sqrt(buttons.length);
-      gameIsAfoot = false;
-      for (let i=0 ; i < buttons.length ; i++){
+      let prevHoleIndex = -1; // safe initial value
+      shuffleMode = true;
+      for (let i = 0 ; i < buttons.length ; i++){
         (function(label,btn,row,col){
-
-          btn.row = row; // TODO remove un-needed properties
-          btn.col = col;
           btn.idx = label - 1;
-          btn.value = `row=${row}, col=${col}`;
+          btn.value = `col=${col},row=${row}`;
           btn.classList.add(label<buttons.length ? 'active' : 'hole');
           btn.textContent = label;
-
-          // onclick handles game logic
-          //
-          btn.onclick=function(){
-
-            gameStatus.innerText = `Moves: ${++nMoves}`;
-
-            // TODO move button into hole if neighb
+          btn.onclick=function(){ // handle game logic
+            console.log(`Clicked on ${btn.textContent} at idx ${btn.idx} coords ${btn.value}`);
             let holeIndex = findHoleIndex(buttons);
             let canMove = isNeighbour(btn.idx, holeIndex, SIDE);
-            console.debug(`Tile at ${btn.idx} ${canMove?'IS':'NOT'} next to hole`);
+            console.debug(`Btn ${btn.textContent} at idx ${btn.idx} ${canMove?'IS':'NOT'} next to hole`);
+            if(shuffleMode){
+              if(btn.idx === prevHoleIndex){
+                console.debug(`Prevent hole back-tracking to ${btn.value} during shuffling`);
+                canMove = false;
+              }
+            }
             if( canMove ){
               swapTileProperties(btn,buttons[holeIndex]);
-            }
-
-            // In firefox console opens with CTRL+SHIFT+K
-            console.log(`Player clicked tile at ${btn.idx} coords ${btn.value}`);
-
-            // TilePuzzle only has win or not win
-            // Prevent randomisation sweep from winning game accidentally
-            if(gameIsAfoot){
-              checkGameWon();
+              gameStatus.innerText = `Moves: ${++nMoves}`;
+              prevHoleIndex = holeIndex
+              if(!shuffleMode){ // Prevent shuffling from winning game accidentally
+                checkGameWon();
+              }
             }
           };
-
-        })(i+1, buttons[i], int(1+i/SIDE), int(1+i%SIDE));
+        })(i+1, buttons[i], int((i/SIDE)), int((i%SIDE)));
 
       }//for i
+
       gameStatus = document.getElementById('gameStatus');
       gameStatus2 = document.getElementById('gameStatus2');
 
       randomiseGame();
       gameStatus2.innerText = `Solvable in: ${nMoves} moves`;
-      gameIsAfoot = true;
+      shuffleMode = false;
       nMoves=0;
       gameStatus.innerText = `Moves: 0`;
-
     }
 
     // Walk buttons, return index of button with hole class
@@ -227,7 +222,6 @@
       let i;
       for( i = 0; i<arrBtns.length; ++i){
         if( arrBtns[i].classList.contains('hole') ){
-          console.debug(`Hole position: index ${i}`);
           return i;
         }
       }
@@ -244,7 +238,7 @@
       btnCol = index2Col(btnIdx, SIDE);
       holeRow = index2Row(holeIdx, SIDE);
       holeCol = index2Col(holeIdx, SIDE);
-      console.debug( `btn ${btnIdx} at (${btnCol},${btnRow}), hole at (${holeCol},${holeRow})` );
+      console.debug( `btn at idx ${btnIdx} at (${btnCol},${btnRow}), hole at (${holeCol},${holeRow})` );
 
       if( btnRow === holeRow ){
         if( Math.abs(btnCol-holeCol) == 1 ){
@@ -311,14 +305,18 @@
     function getRandomNeighbour(index,SIDE){
       const row = index2Row(index,SIDE);
       const col = index2Col(index,SIDE);
-      const neighbRow = getRandomAdjacent(row,SIDE);
-      const neighbCol = getRandomAdjacent(col,SIDE);
+      let neighbRow = row;
+      let neighbCol = col;
+  	  if(0 == randomInclusive(0,1)){
+        neighbCol = getRandomAdjacent(col,SIDE);
+  	  }else{
+        neighbRow = getRandomAdjacent(row,SIDE);
+  	  }
       return neighbCol + SIDE*neighbRow;
     }
 
     function getRandomAdjacent(pos,SIDE){
       delta = randomInclusive(-1,1);
-      console.debug(`randomInclusive(-1,1): ${delta}`);
       let adjPos = pos + delta;
       if(adjPos<0 || SIDE<=adjPos){
         adjPos = pos - delta;
@@ -328,7 +326,10 @@
 
     //Adapted from https://stackoverflow.com/a/7228322/7409029
     function randomInclusive(min, max) { // min and max included
-      return int(Math.random() * (max - min + 1) + min);
+      const amp = max - min + 1;
+      const r = int(Math.random() * amp) + min;
+      console.debug(`randomInclusive(${min},${max})->${r}`);
+      return r;
     }
 
     // see caveat1 above; 'load' would delay till images loaded
