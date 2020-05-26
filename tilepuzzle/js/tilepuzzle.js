@@ -87,6 +87,7 @@ function genGameTable(event){
     for(let d = 0; d<size; ++d){
       let td=document.createElement("td");
       let btn=document.createElement("button");
+      btn.classList.add('gametile');
       btn.value=`col=${d},row=${r}`;
       td.append(btn);
       console.log(`\telem ${d} : ${td} value: ${td.firstChild.value}`);
@@ -118,10 +119,10 @@ function xysize2index(x,y,size){
 //
 function initGame(event){
   console.log(`initGame(event=${event.type})`);
-  buttons = Array.from(document.getElementsByTagName('button'));
+  //buttons = Array.from(document.getElementsByTagName('button'));
+  buttons = document.getElementsByClassName('gametile');
   // remove resizer button
-  // const btnResizer = document.getElementById('id-resizer');
-  buttons.splice(0,1);
+  //buttons.splice(0,1);
   
   const SIDE = Math.sqrt(buttons.length);
   let prevHoleIndex = -1; // safe initial value
@@ -231,7 +232,7 @@ function swapTileProperties(btn,hole){
 }
 function deactivateButtons(){
   [].slice.call( // HTMLCollection -> array
-    document.getElementsByTagName('button')
+    document.getElementsByClassName('gametile')
   ).forEach( (btn) => {
     btn.onclick=null;
     btn.classList.remove('active');
@@ -242,11 +243,14 @@ function deactivateButtons(){
 function randomiseGame(){
   //const buttons = document.getElementsByTagName('button');
   const SIDE = int(Math.sqrt(buttons.length));
-  for(let i = 1; i<42; ++i){
+  for(let i = 1; i<42; ){
     let holeIndex = findHoleIndex(buttons);
     let neighbIndex = getRandomNeighbour(holeIndex,SIDE);
     if(neighbIndex != holeIndex){
       (buttons[neighbIndex]).onclick();
+      ++i;
+    }else{
+      // throw `Oops, neighbIndex: ${neighbIndex} = holeIndex: ${holeIndex}`;
     }
   }
 }
