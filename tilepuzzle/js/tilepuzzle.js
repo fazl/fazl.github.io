@@ -236,6 +236,9 @@ function deactivateButtons(){
   ).forEach( (btn) => {
     btn.onclick=null;
     btn.classList.remove('active');
+    if(!btn.classList.contains('hole')){
+      btn.classList.add('gameover');
+    }
   });
 }
 
