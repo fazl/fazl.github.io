@@ -125,7 +125,7 @@ function initGame(event){
   //buttons.splice(0,1);
   
   const SIDE = Math.sqrt(buttons.length);
-  let prevHoleIndex = -1; // safe initial value
+  let prevHoleIdx = -1; // safe initial value
   shuffleMode = true;
   for (let i = 0 ; i < buttons.length ; i++){
     (function(label,btn,row,col){
@@ -135,19 +135,30 @@ function initGame(event){
       btn.textContent = label;
       btn.onclick=function(){ // handle game logic
         console.log(`Clicked on ${btn.textContent} at idx ${btn.idx} coords ${btn.value}`);
-        let holeIndex = findHoleIndex(buttons);
-        let canMove = isNeighbour(btn.idx, holeIndex, SIDE);
-        console.debug(`Btn ${btn.textContent} at idx ${btn.idx} ${canMove?'IS':'NOT'} next to hole`);
+        const holeIdx = findHoleIndex(buttons);
+        const btnLine=btnsBetween(btn.idx, holeIdx, SIDE);
+        console.debug(`Btns (inclusive) between ${btn.textContent} at idx ${btn.idx} and hole: ${btnLine}`);
+        
+        let canMove = (btnLine!==null);
+        console.debug(`Btn ${btn.textContent} at idx ${btn.idx} ${canMove?'CAN':'CANT'} move towards hole`);
+
         if(shuffleMode){
-          if(btn.idx === prevHoleIndex){
+          if(btn.idx === prevHoleIdx){
             console.debug(`Prevent hole back-tracking to ${btn.value} during shuffling`);
             canMove = false;
           }
         }
+        
         if( canMove ){
-          swapTileProperties(btn,buttons[holeIndex]);
-          gameStatus.innerText = `Moves: ${++nMoves}`;
-          prevHoleIndex = holeIndex
+          let lineHoleIdx = holeIdx;
+          for (let i = 1 ; i < btnLine.length ; i++){ // skip hole 
+            const lineBtnIdx = btnLine[i];
+            let lineBtn = buttons[ lineBtnIdx ];
+            swapTileProperties(lineBtn,buttons[lineHoleIdx]);
+            gameStatus.innerText = `Moves: ${++nMoves}`;
+            prevHoleIdx = lineHoleIdx;
+            lineHoleIdx = lineBtnIdx;
+          }
           if(!shuffleMode){ // Prevent shuffling from winning game accidentally
             checkGameWon();
           }
@@ -179,6 +190,70 @@ function findHoleIndex(arrBtns){
   throw `Logic error.. 0/${i} button/tiles has 'hole' class `;
 }
 
+// return a list of (indexes of) buttons to click between hole
+// and button at the supplied index, to move them all 
+// (return an empty list if appropriate).
+//
+function btnsBetween(btnIdx, holeIdx, SIDE){
+  btnRow = index2Row(btnIdx, SIDE);
+  btnCol = index2Col(btnIdx, SIDE);
+  holeRow = index2Row(holeIdx, SIDE);
+  holeCol = index2Col(holeIdx, SIDE);
+  console.debug( `btn at idx ${btnIdx} at (${btnCol},${btnRow}), hole at (${holeCol},${holeRow})` );
+
+  const align = areAligned( btnIdx, holeIdx, SIDE);
+  if( "SAMEROW" === align ){
+    let btns = [];
+    console.debug(`walk from hole to btn in row`);
+    const distance = btnCol - holeCol;
+    const direction = Math.sign(distance);
+    console.debug(`Hole to button distance: ${Math.abs(distance)}, direction: ${direction}`);
+    for(let i = 0; i<=Math.abs(distance); i++ ){
+      let col = holeCol+(i*direction);
+      console.debug(`Step ${i}: col=${col}`);
+      btns.push(rowCol2Index(btnRow,col,SIDE));
+    }
+    return btns;
+  } else if( "SAMECOL" === align ){
+    let btns = [];
+    console.debug(`walk from hole to btn in col`);
+    const distance = btnRow - holeRow;
+    //const direction = (distance<0)?-1:(distance>0)?1:0;
+    const direction = Math.sign(distance);
+    console.debug(`Hole to button distance: ${Math.abs(distance)}, direction: ${direction}`);
+    for(let i = 0; i<=Math.abs(distance); i++ ){
+      let row = holeRow+(i*direction);
+      console.debug(`Step ${i}: row=${row}`);
+      btns.push(rowCol2Index(row,btnCol,SIDE));
+    }
+    return btns;
+  }
+  return null;
+}
+
+// return whether cells at supplied indices 
+// are aligned horizontally ('SAMEROW'),
+// or vertically ('SAMECOL'), 
+// or not ('').
+// 
+function areAligned(btnIdx, holeIdx, SIDE){
+
+  btnRow = index2Row(btnIdx, SIDE);
+  holeRow = index2Row(holeIdx, SIDE);
+  if( btnRow === holeRow ){
+    console.debug( `btn at idx ${btnIdx} same row as hole` );
+    return "SAMEROW";
+  }
+  btnCol = index2Col(btnIdx, SIDE);
+  holeCol = index2Col(holeIdx, SIDE);
+  if ( btnCol === holeCol ){
+    console.debug( `btn at idx ${btnIdx} same col as hole` );
+    return "SAMECOL";
+  } 
+
+  console.debug( `btn at idx ${btnIdx} not aligned with hole` );
+  return "";
+}
 // return true if cells at supplied indices adjacent
 // horiz adjacent: same row, cols differ by 1
 // vert adjacent: same col, rows differ by 1
@@ -211,6 +286,11 @@ function index2Row( idx, SIDE ){
 //SIDE count of rows or cols
 function index2Col( idx, SIDE ){
   return idx%SIDE;
+}
+
+//SIDE count of rows or cols
+function rowCol2Index( row, col, SIDE ){
+  return (row*SIDE)+col;
 }
 
 // Rather not walk table body, do td.append(btn) at destinations..
@@ -247,13 +327,13 @@ function randomiseGame(){
   //const buttons = document.getElementsByTagName('button');
   const SIDE = int(Math.sqrt(buttons.length));
   for(let i = 1; i<42; ){
-    let holeIndex = findHoleIndex(buttons);
-    let neighbIndex = getRandomNeighbour(holeIndex,SIDE);
-    if(neighbIndex != holeIndex){
+    let holeIdx = findHoleIndex(buttons);
+    let neighbIndex = getRandomNeighbour(holeIdx,SIDE);
+    if(neighbIndex != holeIdx){
       (buttons[neighbIndex]).onclick();
       ++i;
     }else{
-      // throw `Oops, neighbIndex: ${neighbIndex} = holeIndex: ${holeIndex}`;
+      // throw `Oops, neighbIndex: ${neighbIndex} = holeIdx: ${holeIdx}`;
     }
   }
 }
