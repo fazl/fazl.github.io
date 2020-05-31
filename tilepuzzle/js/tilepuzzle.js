@@ -1,33 +1,54 @@
-let buttons = null;
-let gameStatus = null;
-let gameStatus2 = null;
+const GameMode = {
+  SHUFFLE : 1,
+  PLAY : 2,
+  SOLVE : 3
+}
+
+let buttons;
+let btnSolveGame;
+let btnNewGame;
+let inputNewSize;
+let clickedList; // list of tiles clicked over time
+let gameStatus;
+let gameStatus2;
+let mode = GameMode.SHUFFLE;
 let nMoves = 0;
-let shuffleMode = true;
+let solvableMoves = 0;
 
 // global error handler
 // see https://stackoverflow.com/a/10556743/7409029
 // Could report error via ajax to track pages with issues!
 window.onerror = function(msg, url, line, col, error) {
    // Note col & error new to HTML 5
-   var extra = !col ? '' : '\ncolumn: ' + col;
+   let extra = !col ? '' : '\ncolumn: ' + col;
    extra += !error ? '' : '\nerror: ' + error;
 
    alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + extra);
 
-   var suppressErrorAlert = false;
+   let suppressErrorAlert = false;
    // If you return true, then error alerts (like in older versions of
    // Internet Explorer) will be suppressed.
    return suppressErrorAlert;
 };
 
+//From T.J.Crowder https://stackoverflow.com/a/15313435/7409029
+function assert(condition, message) {
+    if (!condition) {
+        message = message || "Assertion failed";
+        if (typeof Error !== "undefined") {
+            throw new Error(message);
+        }
+        throw message; // Fallback
+    }
+}
+
 // (bitwise-not)x2 truncates float to int see stackoverflow
 function int(val){ return ~~val; }
 
 function checkGameWon(){
-  //const buttons = document.getElementsByTagName('button');
   for(let i = 0; i<buttons.length; i++){
 
-    if( 1+i != +(buttons[i].textContent)){
+    if( 1+i != 0+(buttons[i].textContent)){
       // found a button in wrong position
       return false;
     }
@@ -36,6 +57,10 @@ function checkGameWon(){
   console.log(`All tiles in place - Game over - phew!`);
   deactivateButtons();
   setGameOverStatus(gameStatus);
+}
+
+function displaySolvableMoves(solvableDisplayElem, solvableMoves){
+    solvableDisplayElem.innerText = `Solvable in: ${solvableMoves} moves`;
 }
 
 function setGameOverStatus(cont){
@@ -52,11 +77,7 @@ function setGameOverStatus(cont){
 //
 function genGameTable(event){
   let size = document.getElementById("id-size").value;
-  if(size<3){
-    size = 3;
-  }else if(9<size){
-    size = 9;
-  }
+  size = Math.min(Math.max(size, 3), 9); //credit: https://stackoverflow.com/q/5842747/7409029
   console.log(`genGameTable() new size: ${size}`);
   const body = document.getElementById("game-table-body");
   const rows = body.children;
@@ -81,14 +102,21 @@ function genGameTable(event){
   }
 
   // repopulate with `size x size` grid
+  // create `size` rows, each with `size` buttons
+  // give each button style 'gametile'
+  // ?? Could add labels here too, currently done in initGame ??
   for(let r = 0; r<size; ++r){
-    let row=document.createElement("tr");;
+    let row=document.createElement("tr");
     console.log(`New row ${r} : ${row}`);
     for(let d = 0; d<size; ++d){
       let td=document.createElement("td");
       let btn=document.createElement("button");
       btn.classList.add('gametile');
       btn.value=`col=${d},row=${r}`;
+      btn.idx = rowCol2Index(r,d,size);
+      btn.value = `col=${d},row=${r}`;
+      btn.classList.add( (btn.idx+1)<(size*size) ? 'active' : 'hole');
+      btn.textContent = btn.idx+1;
       td.append(btn);
       console.log(`\telem ${d} : ${td} value: ${td.firstChild.value}`);
       row.append(td);
@@ -119,52 +147,52 @@ function xysize2index(x,y,size){
 //
 function initGame(event){
   console.log(`initGame(event=${event.type})`);
-  //buttons = Array.from(document.getElementsByTagName('button'));
+  clickedList = [];
   buttons = document.getElementsByClassName('gametile');
-  // remove resizer button
-  //buttons.splice(0,1);
-  
+  btnSolveGame = document.getElementById('id-solve-game');
+  btnNewGame = document.getElementById('id-new-game');
+  inputNewSize = document.getElementById('id-size');
+
   const SIDE = Math.sqrt(buttons.length);
   let prevHoleIdx = -1; // safe initial value
-  shuffleMode = true;
+  mode = GameMode.SHUFFLE;
   for (let i = 0 ; i < buttons.length ; i++){
-    (function(label,btn,row,col){
-      btn.idx = label - 1;
-      btn.value = `col=${col},row=${row}`;
-      btn.classList.add(label<buttons.length ? 'active' : 'hole');
-      btn.textContent = label;
+    (function(label,btn){
       btn.onclick=function(){ // handle game logic
         console.log(`Clicked on ${btn.textContent} at idx ${btn.idx} coords ${btn.value}`);
         const holeIdx = findHoleIndex(buttons);
         const btnLine=btnsBetween(btn.idx, holeIdx, SIDE);
         console.debug(`Btns (inclusive) between ${btn.textContent} at idx ${btn.idx} and hole: ${btnLine}`);
-        
+
         let canMove = (btnLine!==null);
         console.debug(`Btn ${btn.textContent} at idx ${btn.idx} ${canMove?'CAN':'CANT'} move towards hole`);
 
-        if(shuffleMode){
+        if(mode===GameMode.SHUFFLE){
           if(btn.idx === prevHoleIdx){
             console.debug(`Prevent hole back-tracking to ${btn.value} during shuffling`);
             canMove = false;
           }
         }
-        
+
         if( canMove ){
-          let lineHoleIdx = holeIdx;
-          for (let i = 1 ; i < btnLine.length ; i++){ // skip hole 
+          let hIdx = holeIdx;
+          for (let i = 1 ; i < btnLine.length ; i++){ // 1: skip hole
             const lineBtnIdx = btnLine[i];
             let lineBtn = buttons[ lineBtnIdx ];
-            swapTileProperties(lineBtn,buttons[lineHoleIdx]);
-            gameStatus.innerText = `Moves: ${++nMoves}`;
-            prevHoleIdx = lineHoleIdx;
-            lineHoleIdx = lineBtnIdx;
+            swapTileProperties(lineBtn,buttons[hIdx]);
+            if (mode !== GameMode.SOLVE) {
+              clickedList.push(hIdx);
+              gameStatus.innerText = `Moves: ${++nMoves}`;
+            }
+            prevHoleIdx = hIdx;
+            hIdx = lineBtnIdx;
           }
-          if(!shuffleMode){ // Prevent shuffling from winning game accidentally
+          if(mode===GameMode.PLAY){ // Prevent shuffling from winning game accidentally
             checkGameWon();
           }
         }
       };
-    })(i+1, buttons[i], int((i/SIDE)), int((i%SIDE)));
+    })(i+1, buttons[i] );
 
   }//for i
 
@@ -172,8 +200,9 @@ function initGame(event){
   gameStatus2 = document.getElementById('gameStatus2');
 
   randomiseGame();
-  gameStatus2.innerText = `Solvable in: ${nMoves} moves`;
-  shuffleMode = false;
+  solvableMoves = nMoves;
+  displaySolvableMoves(gameStatus2, solvableMoves);
+  mode = GameMode.PLAY;
   nMoves=0;
   gameStatus.innerText = `Moves: 0`;
 }
@@ -191,7 +220,7 @@ function findHoleIndex(arrBtns){
 }
 
 // return a list of (indexes of) buttons to click between hole
-// and button at the supplied index, to move them all 
+// and button at the supplied index, to move them all
 // (return an empty list if appropriate).
 //
 function btnsBetween(btnIdx, holeIdx, SIDE){
@@ -231,11 +260,11 @@ function btnsBetween(btnIdx, holeIdx, SIDE){
   return null;
 }
 
-// return whether cells at supplied indices 
+// return whether cells at supplied indices
 // are aligned horizontally ('SAMEROW'),
-// or vertically ('SAMECOL'), 
+// or vertically ('SAMECOL'),
 // or not ('').
-// 
+//
 function areAligned(btnIdx, holeIdx, SIDE){
 
   btnRow = index2Row(btnIdx, SIDE);
@@ -249,7 +278,7 @@ function areAligned(btnIdx, holeIdx, SIDE){
   if ( btnCol === holeCol ){
     console.debug( `btn at idx ${btnIdx} same col as hole` );
     return "SAMECOL";
-  } 
+  }
 
   console.debug( `btn at idx ${btnIdx} not aligned with hole` );
   return "";
@@ -311,31 +340,29 @@ function swapTileProperties(btn,hole){
     hole.textContent = tmp;
 }
 function deactivateButtons(){
-  [].slice.call( // HTMLCollection -> array
-    document.getElementsByClassName('gametile')
-  ).forEach( (btn) => {
+  [btnSolveGame].forEach(elem => elem.disabled=true);
+  // HTMLCollection -> array
+  [].slice.call( buttons ).forEach( (btn) => {
     btn.onclick=null;
-    btn.classList.remove('active');
-    if(!btn.classList.contains('hole')){
+
+    if (btn.classList.contains('active')){
+      btn.classList.remove('active');
       btn.classList.add('gameover');
     }
   });
 }
 
-// Find hole; choose click a neighbour at random; repeat
+// Find hole; click a random neighbour; repeat
 function randomiseGame(){
-  //const buttons = document.getElementsByTagName('button');
   const SIDE = int(Math.sqrt(buttons.length));
   for(let i = 1; i<42; ){
     let holeIdx = findHoleIndex(buttons);
     let neighbIndex = getRandomNeighbour(holeIdx,SIDE);
-    if(neighbIndex != holeIdx){
-      (buttons[neighbIndex]).onclick();
-      ++i;
-    }else{
-      // throw `Oops, neighbIndex: ${neighbIndex} = holeIdx: ${holeIdx}`;
-    }
+    assert(neighbIndex != holeIdx, "Got hole back from getRandomNeighbour(holeIdx,SIDE)");
+    (buttons[neighbIndex]).onclick();
+    ++i;
   }
+  console.debug(`Click-to-solve  list: ${clickedList}`)
 }
 
 function getRandomNeighbour(index,SIDE){
@@ -352,7 +379,7 @@ function getRandomNeighbour(index,SIDE){
 }
 
 function getRandomAdjacent(pos,SIDE){
-  delta = randomInclusive(-1,1);
+  const delta = randomInclusive(0,1)*2-1;
   let adjPos = pos + delta;
   if(adjPos<0 || SIDE<=adjPos){
     adjPos = pos - delta;
@@ -368,5 +395,23 @@ function randomInclusive(min, max) { // min and max included
   return r;
 }
 
+async function solveGame(){
+  console.debug(`solveGame()`);
+  if ( clickedList.length == 0 ){
+    console.debug(`Nothing to solve!`);
+    return;
+  }
+  mode=GameMode.SOLVE;
+  [btnNewGame,btnSolveGame,inputNewSize].forEach(elem => elem.disabled=true);
+  for(let i = clickedList.length-1; i>=0; --i){
+    const idx = clickedList[i];
+    const btn = buttons[idx];
+    btn.onclick();
+    await new Promise(r => setTimeout(r, 300)); // sleep
+    clickedList.pop();
+  }
+  [btnNewGame,btnSolveGame,inputNewSize].forEach(elem => elem.disabled=false);
+  mode=GameMode.PLAY;
+}
 // see caveat1 above; 'load' would delay till images loaded
-addEventListener("DOMContentLoaded", initGame);
+addEventListener("DOMContentLoaded", genGameTable);

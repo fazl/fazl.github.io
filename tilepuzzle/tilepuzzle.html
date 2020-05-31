@@ -8,7 +8,7 @@
   <meta name="description" content="Resizable Tile Puzzle">
   <meta name="author" content="Fazl">
 
-  <link rel="stylesheet" href="css/styles.css?v=1.0">
+<!--  <link rel="stylesheet" href="css/styles.css?v=1.0">-->
 
   <!-- inline styles take precedence over external -->
   <style type="text/css">
@@ -40,7 +40,7 @@
       background-color: yellow;
       transition: 1s;
     }
-    button#id-resizer{
+    button.newgame{
       width: 130px;
       height: 20px;
       outline: none;
@@ -69,45 +69,34 @@
 
 <body>
   <script src="js/tilepuzzle.js"></script>
-  <!--
-  <p style="color: red">The <code>style</code> attribute can override both inline and external styles, though.</p>
-  -->
 
+  <!--
+  First table holds title and controls for setting game size, starting a new game
+  -->
   <table>
     <thead>
       <tr>
         <th colspan="3"> <h1>Resizable Tile Puzzle</h1> </th>
       </tr>
+      
       <tr>
-        <!--
-        <th colspan="3" align="left">
+        <th colspan="2" align="left">
+          Size: 3..9 :
           <input id="id-size" min="2" max="9" value="3" type="number" onclick="genGameTable(event)" />
-          (Enter size 3-9, click to update)
+          <button id="id-new-game" class="newgame" onclick="genGameTable(event)">New Game</button>
         </th>
-        -->
-
-        <th colspan="1" align="left">
-          Allowed: 3..9 :
-        </th>
-        <th colspan="1" align="left">
-          <input id="id-size" min="2" max="9" value="3" type="number" onclick="genGameTable(event)" />
-        </th>
-        <th colspan="1" align="left">
-          <button id="id-resizer" style="resizer" onclick="genGameTable(event)">New Game</button>
-        </th>
-
-      </tr>
-        <!--
-      <tr>
-        <th colspan="3" align="left">
-          <button id="id-resizer" style="resizer" onclick="genGameTable(event)">Resize</button>
+        <th colspan="1" align="right">
+          <button id="id-solve-game" class="newgame" onclick="solveGame()">Give up!</button>
         </th>
       </tr>
-        -->
 
     </thead>
   </table>
 
+  <!--
+  Second table holds the grid of game tiles (buttons)
+  The literal table here is repopulated when the game starts
+  -->
   <table id="game-table">
     <thead>
       <tr>
@@ -118,13 +107,13 @@
     <tbody id="game-table-body">
       <!-- tbody rebuilt at runtime -->
       <tr>
-        <td><button class="gametile"/></td> <td><button class="gametile"/></td> <td><button class="gametile"/></td>
+        <td><button/></td> <td><button/></td> <td><button/></td>
       </tr>
       <tr>
-        <td><button class="gametile"/></td> <td><button class="gametile"/></td> <td><button class="gametile"/></td>
+        <td><button/></td> <td><button/></td> <td><button/></td>
       </tr>
       <tr>
-        <td><button class="gametile"/></td> <td><button class="gametile"/></td> <td><button class="gametile"/></td>
+        <td><button/></td> <td><button/></td> <td><button/></td>
       </tr>
     </tbody>
   </table>
